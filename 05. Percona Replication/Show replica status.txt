@@ -47,5 +47,52 @@ if we have IO thread working and no changes are able to be applied on the replic
 * Ignore databases
 -------------------
 
+To ignore the database we can use or add the information in configuration file. 
 
+In the my.cnf or if you have a seperate configuration for replication you can now ignore the databases. 
+
+in mysql 
+> STOP REPLICA;
+
+exit mysql and then in 
+> sudo vi /etc/mysql/replication.cnf 
+
+> ignore-replicate-db		= 	finance;
+
+> sudo systemctl stop mysql && sudo systemctl start mysql
+
+in mysql 
+
+> START REPLICA;
+
+> SHOW REPLICA STATUS\G;
+	This gives the information about the replication and you can check ignore db column in the output where it lists the database information. 
+
+you can now check by creating any tables or objects and now no objects will be replicated to destination. 
+
+* Ignore Tables
+-----------------
+
+To ignore the database tables we can use the below commands 
+
+In the my.cnf or if you have a seperate configuration for replication you can now ignore the databases. 
+
+in mysql 
+> STOP REPLICA;
+
+exit mysql and then in 
+> sudo vi /etc/mysql/replication.cnf 
+
+> ignore-replicate-table		= 	world.oceans;
+
+> sudo systemctl stop mysql && sudo systemctl start mysql
+
+in mysql 
+
+> START REPLICA;
+
+> SHOW REPLICA STATUS\G;
+	This gives the information about the replication and you can check ignore table column in the output where it lists the ignored tables information. 
+
+you can now check by inserting data into the table or objects and now no objects data will be replicated to destination. 
 
