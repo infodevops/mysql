@@ -1,0 +1,43 @@
+--Install Percona Xtradb Cluster.
+
+--Check if previously we have MySQL installed.
+
+dpkg -l | grep mysql
+
+apt list --installed *mysql* 
+
+--Check if previously we have percona installed.
+
+dpkg -l | grep percona
+
+apt list --installed *Percona* 
+
+-- Update your system 
+
+sudo apt update -y && sudo apt upgrade -y 
+
+--Install the necessary packages:
+
+sudo apt install -y wget gnupg2 lsb-release curl
+
+--Dowload the repository package 
+
+wget https://repo.percona.com/apt/percona-release_latest.generic_all.deb
+
+curl -O https://repo.percona.com/apt/percona-release_latest.generic_all.deb
+
+--Install the package 
+
+sudo dpkg -i percona-release_latest.generic_all.deb
+
+-- Update your system to refresh the local cache of packages
+
+sudo apt update -y 
+
+--Enable the release repository for Percona XtraDB Cluster:
+
+sudo percona-release setup pxc80
+
+--Install the cluster:
+
+sudo apt install -y percona-xtradb-cluster
