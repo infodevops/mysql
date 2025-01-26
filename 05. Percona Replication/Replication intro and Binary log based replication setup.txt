@@ -1,0 +1,196 @@
+#To Setup replication using binlog 
+
+Replication enables data copy from Primary/Source to Replica/Slave.
+
+Replication is asynchronous by default. 
+
+Replication should be between two seperate servers.
+
+Replication can be selected for All databases, selected or even selected tables. 
+
+Replication provides high availability.
+
+Replication Methods:
+--------------------
+
+There are two types of replication methods,
+
+1. Traditional methods: This uses the binlog position based replication format 
+
+2. GTID -  This uses the global transaction identifier based replication format.
+
+Binary log file based replication 
+
+- Replicating events from primary binary log file. 
+- Requires the log files and positions to be synced b/w primary and replica. 
+
+GTID based replicaiton:
+
+- Newer method, does not require working with binary logs and positions within files. 
+- GTID gurantees consistency b/w primary and replica as long as transactions committed on primary also been applied to replica. 
+- Recommended for replication. 
+
+*Replicaiton Formats:
+---------------------
+
+-Replication works based on the events written to the binlog and are from source and then processed on replica.
+-Events are recorded in the binary log file in different formats according to the file type of event. 
+-binlog format is the system global variable that defines which format to use. 
+
+statement based replication - SBR 
+	> binlog-format		= 	STATEMENT 
+	
+row based replication (From 8.0 this is by default)
+
+	> binlog-format		= 	ROW 
+
+mixed replication (deprecated and not in use) 
+
+	> binlog-format 	=	MIXED
+
+To view the current format there are two ways. 
+
+1. check the global variable by logging to mysql. 
+
+	>login to mysql 
+	>show global variables like 'binlog%';
+
+2. check from the mysqld help section 
+
+	> mysqld --help --verbose | grep binlog
+	
+3. Check for the log bin locations and ensure that you create the same on replica while you setup, not only this any other like data directory and errorlog locations as well. 
+
+	>show global variables like 'log%';
+	
+188. General Replication setup requirements:
+---------------------------------------------
+
+On primary/Master/source server: 
+
+Create a replication.cnf or you can use the existing my.cnf at location /etc/mysql/
+
+if you are going to use replication.cnf then you can add the 
+
+!include /etc/mysql/replication.cnf file in my.cnf as a reference to use this configuration file. 
+
+1. Add binlog location or use the default ones 
+
+	> create a new location 
+		sudo mkdir /var/lib/mysql/binlogs
+		sudo chown -R mysql:mysql /var/lib/mysql/binlogs
+		
+	add the following lines 
+	#binlogs location
+	log-bin = /var/lib/mysql/binlogs/binlog
+	log-bin-index = /var/lib/mysql/binlogs/binlog.index
+	
+2. Change or configure the server id in configuration server 
+
+	#server id 
+	server-id = 1
+	
+3. Create a replication user explcitly instead of using any admin account and grant access. 
+
+	> CREATE USER IF NOT EXISTS 'replicator'@'%' WITH <'mysql_native_password' or <sha2_caching_password>' IDENTIFIED BY '<password>';
+	> GRANT REPLICATION SLAVE ON *.* TO replicator;
+	> show grants for replicator;
+	
+4. Take the hot backup of entire server using percona xtrabackup 
+
+	> create a temporary directory 
+		sudo mkdir /tmp/backups
+	
+	> backup command 
+		xtrabackup --backup --target-dir=/tmp/backups/
+		
+	> prepare the backup 
+	 Data files are not point-in-time consistent until they are prepared, because they were copied at different times as the program ran, and they might have been changed while this was happening.
+		xtrabackup --backup --target-dir=/tmp/backups/
+		
+	This can be done on any server not on originating server.
+	
+4. Copy the backups 
+
+	you can use scp to copy to the secondary server 
+	
+Configuration on Replica server: 
+
+1. Stop the mysql server 
+	> sudo systemctl stop mysql 
+
+2. After copying the backups empty the /var/lib/mysql directory. 
+	a. if you have any directories like data directories of innodb and any other directories of binlog, errorlog , create them without fail and grant permissions. 
+
+3. Copy the backup files to /var/lib/mysql and if you have a specific directories for data and binlog and error log, copy the files to locations. 
+
+4. Create a new configuration file 
+	> sudo touch /etc/mysql/replication.cnf 
+	
+	edit the sudo vi /etc/mysql/my.cnf and add the following line 
+	!include /etc/mysql/replication.cnf
+	
+5. We have to consider 4 things before configuration of replication. 
+	1. Server id = 2
+	2. relay log 
+		> relay-log				= 		/var/log/mysql/relay/replica-relay
+		> relay-log-index		=		/var/log/mysql/relay/replica-relay.index
+	3. Make server read only
+		> read-only
+	4. skip auto start of the replica 
+		#skip auto start replica
+		>skip-replica-start
+	5. #report hostname on primary server
+		report-host             =       node05
+		
+		This command on primary/master gives you the connected replicas with hostname when you use report-host 
+		show replicas;
+
+6. Once the above configuratins are completed you may now start the mysql service on Replica/Slave 
+	> sudo systemctl start mysql 
+	
+7. Use the below command if you are using MySQL 8.0 and above to setup replication on secondary. 
+
+	CHANGE REPLICATION SOURCE TO
+		SOURCE_HOST='192.168.1.104',
+		SOURCE_USER='replicator',
+		SOURCE_PASSWORD='replicator',
+		SOURCE_PORT=3306,
+		SOURCE_LOG_FILE='binlog.000003',
+		SOURCE_LOG_POS=157,
+		GET_SOURCE_PUBLIC_KEY=1, # we are using this as a part to avoid the sha2_caching_password authentication failures. 
+		SOURCE_CONNECT_RETRY=60;
+		
+	Use the below command if you are using MySQL 5.7 and 8.0 below to setup replication on secondary 
+	
+	CHANGE MASTER TO 
+		MASTER_HOST='your_source_ip',
+		MASTER_USER='your_source_user', 
+		MASTER_PASSWORD='pass',
+		MASTER_PORT=3306, 
+		MASTER_LOG_FILE='mysql-bin.001419', 
+		MASTER_LOG_POS=48489886,
+		GET_MASTER_PUBLIC_KEY=1,
+		MASTER_CONNECT_RETRY=10;  
+	
+7. Now we have to start the replica as we switched off the auto start replica in configuration file. 
+
+	> start replica;
+	
+
+Commands to check the status:
+
+On Primary:
+	> show master status; 
+		shows the binary log poistion. 
+	> show replicas;
+		Gives the information about connected replicas. 
+		
+On Secondary:
+	> show replica status\G;
+		Gives the inforamation of connected primary replica;
+	
+
+
+	
+	

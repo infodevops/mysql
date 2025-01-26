@@ -1,0 +1,51 @@
+#SHOW REPLICA STATUS
+
+SHOW REPLICA STATUS\G; on seconadary/replicas gives us an information about complete status how is the replication working.
+
+We have two threads 
+	1. IO Thread
+	2. SQL Thread
+
+1. IO Thread: 
+	Ensures that it pulls the data from source based on source log file, and this thread works for checking as dedicated one. 
+	
+2. SQL Thread:
+	Ensures that all the recorded events on the log which was brought by the IO thread changes are applied on databases. 
+	
+3.  When Read_Source_Log_Pos: and  Exec_Source_Log_Pos: number are equal it defines that no SQL events are more to apply to databases.
+
+4.  Replica_IO_Running: Yes
+    Replica_SQL_Running: Yes
+	These ensures that replica is that threads are active and running or not, when we stop replica it might show us that as NO.
+	
+* Replica IO_THREAD:
+--------------------
+
+Demo to know how IO thread stops sending the data if we stop IO thread on Replica, 
+
+> STOP REPLICA IO_THREAD;
+
+you can validate that 
+	1.  Replica_IO_State: 
+		this will be empty 
+	2.	IO thread will not bring and wait from/for source to send the events recorded in bin log. 
+	
+to check and start this again use the below command.
+
+> START REPLICA IO_THREAD;
+
+* Replica SQL_THREAD:
+----------------------
+
+Demo to know how SQL Read_Source_Log_Pos: and  Exec_Source_Log_Pos: will be affected without applying the changes even 
+if we have IO thread working and no changes are able to be applied on the replica. 
+
+> STOP REPLICA IO_THREAD;
+
+> START REPLICA IO_THREAD;
+
+* Ignore databases
+-------------------
+
+
+
