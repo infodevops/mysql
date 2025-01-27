@@ -1,0 +1,30 @@
+Last_SQL_Error: Coordinator stopped because there were error(s) in the worker(s). The most recent failure being: Worker 1 failed executing transaction 'ANONYMOUS' at source log binlog.000004, end_log_pos 720. See error log and/or performance_schema.replication_applier_status_by_worker table for more details about this failure or others, if any.
+
+There are multiple ways to check on this 
+
+Check what transactions are missed to fix this. 
+
+but it is a recommended method to use GTID replication for data consistencies as it ensures that transactions are committed on primary and secondary and maintains consistency.
+
+Temporary fix using the following command
+
+> STOP REPLICA;
+
+> SET GLOBAL sql_slave_skip_counter = 1;
+
+> START REPLICA;
+
+Note: skipping transactions can lead to data inconsistencies. Use it with caution and investigate the root cause. 
+
+
+*Backup the all databases 
+
+mysqldump --all-databases --master-data > master_backup.sql 
+
+mysql -uroot -p -v < master_backup.sql 
+
+> START REPLICA;
+
+
+
+
