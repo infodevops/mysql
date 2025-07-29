@@ -1,0 +1,18 @@
+Q1. What networks ports are required for Percona Xtradb cluster and Galera?
+Ans: 4567, 4568, 4444
+
+Q2. What is AppArmor and why it will restrict the Percona Xtradb cluster installation or MySQL to run?
+AppArmor is security module that restricts program capabilities using per program profiles.
+
+When AppArmor is active:
+It might block SST operations (e.g. xtrabackup trying to access certain files).
+
+It may prevent MySQL from binding to Galera-related ports.
+
+It can deny file or socket access needed for clustering.
+
+sudo systemctl stop apparmor
+
+sudo systemctl disable apparmor
+
+Q3. 
