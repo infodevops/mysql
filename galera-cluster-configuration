@@ -1,0 +1,31 @@
+#On Server1/Node1
+
+[mysqld]
+server-id=1  # Change for each node
+binlog_format=ROW
+default_storage_engine=InnoDB
+innodb_autoinc_lock_mode=2
+
+wsrep_on=ON
+wsrep_provider=/usr/lib/galera3/libgalera_smm.so
+
+wsrep_cluster_name="pxc-cluster"
+wsrep_cluster_address="gcomm://node1,node2,node3"  # Use hostnames or internal IPs
+
+wsrep_node_name="node1"       # Change to node2, node3 accordingly
+wsrep_node_address="node1"    # Use internal IP or hostname
+
+wsrep_sst_method=xtrabackup-v2
+pxc_strict_mode=ENFORCING
+
+
+#On Server2/Node2
+do it same as node1 
+
+#On Server3/Node3
+do it same as node1
+
+On First Node Only:
+
+sudo systemctl start mysql@bootstrap.service
+
